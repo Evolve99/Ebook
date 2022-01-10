@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+
+    <androidx.appcompat.widget.Toolbar
+        android:id="@+id/toolbar"
+        android:layout_width="match_parent"
+        android:layout_height="?attr/actionBarSize"
+        android:background="?attr/colorPrimary"
+        android:paddingStart="0dp"
+        android:paddingEnd="@dimen/spacingMiddle"
+        android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
+        app:contentInsetStartWithNavigation="0dp"
+        app:popupTheme="@style/ThemeOverlay.AppCompat.Light">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:orientation="horizontal">
+
+            <EditText
+                android:id="@+id/et_search"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="@android:color/transparent"
+                android:hint="@string/msg_search_books"
+                android:imeOptions="actionSearch"
+                android:maxLines="1"
+                android:singleLine="true"
+                android:textColor="@color/colorWhite">
+
+                <requestFocus />
+
+            </EditText>
+
+            <ImageButton
+                android:id="@+id/bt_clear"
+                android:layout_width="@dimen/spacingXLarge"
+                android:layout_height="@dimen/spacingXLarge"
+                android:background="@android:color/transparent"
+                android:src="@drawable/ic_clear"
+                android:visibility="visible" />
+
+        </LinearLayout>
+
+    </androidx.appcompat.widget.Toolbar>
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_above="@+id/bannerAdView"
+        android:layout_below="@+id/toolbar">
+
+        <com.facebook.shimmer.ShimmerFrameLayout
+            android:id="@+id/shimmer_view_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:shimmer_duration="1000">
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <include
+                    android:id="@+id/lyt_shimmer_recipes_grid2"
+                    layout="@layout/shimmer_book_grid2" />
+
+                <include
+                    android:id="@+id/lyt_shimmer_recipes_grid3"
+                    layout="@layout/shimmer_book_grid3" />
+
+            </RelativeLayout>
+
+        </com.facebook.shimmer.ShimmerFrameLayout>
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:padding="@dimen/gridSpaceBook"
+            android:scrollbars="none"
+            android:scrollingCache="true" />
+
+        <include
+            android:id="@+id/lyt_no_item"
+            layout="@layout/include_no_search"
+            android:visibility="gone" />
+
+        <include
+            android:id="@+id/lyt_failed"
+            layout="@layout/include_network_error"
+            android:visibility="gone" />
+
+    </RelativeLayout>
+
+    <com.solodroid.ads.sdk.ui.BannerAdView
+        android:id="@+id/bannerAdView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true" />
+
+</RelativeLayout>

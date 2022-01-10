@@ -28,7 +28,6 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.coordinatorlayout.widget.CoordinatorLayout;
-import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
 
 import com.book.mmbookstore.R;
@@ -61,12 +60,14 @@ import java.io.InputStream;
 import java.util.List;
 
 import okhttp3.ResponseBody;
-import retrofit2.Response;
 
 public class ActivityPDFView extends AppCompatActivity implements OnPageChangeListener, OnLoadCompleteListener, OnPageErrorListener {
 
     // ViewModel
     private ActivityPDFViewModel viewModel;
+
+    private Uri uri;
+    private final Handler handler = new Handler();
 
     private static final String TAG = "ActivityPdfView";
     private PDFView pdfView;
@@ -84,7 +85,7 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
     Button btnRetry;
     String fileExtension = "pdf";
     TextView txtPercentage;
-    private final Handler handler = new Handler();
+
     SharedPref sharedPref;
     ImageButton btnBookmark;
     int savedReadingPages = 0;
@@ -99,28 +100,13 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
                 if (result.getResultCode() == Activity.RESULT_OK) {
                     Log.d(TAG, "mStartForResult: RESULT_OK");
                     if (result.getData() != null) {
-                        Uri uri = result.getData().getData();
+                        uri = result.getData().getData();
                         int takeFlags = getIntent().getFlags();
                         takeFlags &= (Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
                                 | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
                         getContentResolver().takePersistableUriPermission(uri, takeFlags);
                         Log.d(TAG, "mStartForResult: uri: " + uri);
-                        new ExecutorTasks() {
-
-                            @Override
-                            public void onPreExecute() {
-                            }
-
-                            @Override
-                            public void doInBackground() {
-                                alterDocument(uri);
-                            }
-
-                            @Override
-                            public void onPostExecute() {
-                            }
-                        }.execute();
-
+                        viewModel.loadFile(pdfUrl);
                     }
                 } else {
                     Log.d(TAG, "mStartForResult: " + result.getResultCode());
@@ -180,23 +166,23 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
             }
         });
 
-        if (viewModel.isNewBook(book.book_id)) {
+        if (!viewModel.isBookExists(book.book_id)) {
             Log.d(TAG, "file is not exist and load from url first");
-            viewModel.loadFile(pdfUrl);
+            createFile();
         } else {
             try {
                 BookEntity bookEntity = viewModel.getBookById(book.book_id);
                 Uri bookUri = Uri.parse(bookEntity.content_uri);
-                File file = new File(bookUri.getPath());
-                if (file.exists()) {
-                    Log.d(TAG, "file is exist + " + file);
-                    File book = FileUtil.from(this, bookUri);
-                    loadPdfFromFile(file);
+                Log.d(TAG, "onCreate: bookUri: " + bookUri);
 
+                if (FileUtil.checkUriResource(this, bookUri)) {
+                    File myFile = FileUtil.from(this, bookUri);
+                    Log.d(TAG, "file is exist + " + myFile);
+                    loadPdfFromFile(myFile);
                 } else {
                     Log.d(TAG, "file is not exist and load from url first");
                     viewModel.deleteBook(bookEntity.book_id);
-                    viewModel.loadFile(pdfUrl);
+                    createFile();
                 }
             } catch (IOException e) {
                 e.printStackTrace();
@@ -208,6 +194,7 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
         setupToolbar();
     }
 
+
     private void subscribeObservers() {
         viewModel.getResponseLiveData().observe(this, response -> {
             if (response == null) {
@@ -216,8 +203,24 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
             if (response.isSuccessful()) {
                 Log.d(TAG, "Got the body for the file");
                 if (response.body() != null) {
-                    createFile();
                     mResponseBody = response.body();
+                    new ExecutorTasks() {
+                        @Override
+                        public void onPreExecute() {
+
+                        }
+
+                        @Override
+                        public void doInBackground() {
+                            alterDocument(uri, mResponseBody);
+                        }
+
+                        @Override
+                        public void onPostExecute() {
+
+                        }
+                    }.execute();
+
                 }
             } else {
                 showFailedView();
@@ -225,7 +228,6 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
             }
         });
     }
-
 
     private void createFile() {
         Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
@@ -236,7 +238,47 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
         mStartForResult.launch(intent);
     }
 
+    private void alterDocument(Uri uri, ResponseBody body) {
+        try {
+            ParcelFileDescriptor pfd = getApplication().getContentResolver()
+                    .openFileDescriptor(uri, "w");
+            FileOutputStream fileOutputStream =
+                    new FileOutputStream(pfd.getFileDescriptor());
 
+            inputStream = body.byteStream();
+            byte[] data = new byte[4096];
+            int count;
+            int progress = 0;
+            while ((count = inputStream.read(data)) != -1) {
+                fileOutputStream.write(data, 0, count);
+                progress += count;
+                int finalProgress = progress;
+                handler.post(() -> txtPercentage.setText((int) ((finalProgress * 100) / body.contentLength()) + "%"));
+                Log.d(TAG, "Progress: " + progress + "/" + body.contentLength() + " >>>> "
+                        + (float) progress / body.contentLength());
+            }
+            fileOutputStream.close();
+            pfd.close();
+            viewModel.getDao().insertBook(book.book_id, book.book_name, uri.toString());
+
+            File file = FileUtil.from(getApplication(), uri);
+            Log.d(TAG, "alterDocument: File:::::::: uti" + file.getPath() + " file - " + file + ": " + file.exists());
+            loadPdfFromFile(file);
+            Log.d(TAG, "File saved successfully!");
+        } catch (IOException e) {
+            e.printStackTrace();
+            loadPdfFromUrl(body.byteStream());
+            Log.d(TAG, "Failed to save the file! " + e.getMessage());
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
 
     private void setupToolbar() {
         ((TextView) findViewById(R.id.toolbar_title)).setText(book.book_name);
@@ -403,7 +445,7 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
             swipeProgress(true);
             lytFailed.setVisibility(View.GONE);
             pdfView.setVisibility(View.GONE);
-            viewModel.loadFile(pdfUrl);
+            createFile();
         });
     }
 
@@ -430,7 +472,7 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
                     .pageFling(true)
                     .pageFitPolicy(FitPolicy.WIDTH)
                     .onError(t -> {
-                        viewModel.loadFile(pdfUrl);
+                        createFile();
                         Log.d(TAG, "failed load pdf and try reload from url");
                     })
                     .nightMode(sharedPref.getIsDarkTheme())

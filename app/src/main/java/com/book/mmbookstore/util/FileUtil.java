@@ -34,6 +34,7 @@ public class FileUtil {
             out = new FileOutputStream(tempFile);
         } catch (FileNotFoundException e) {
             e.printStackTrace();
+            return null;
         }
         if (inputStream != null) {
             copy(inputStream, out);
@@ -108,5 +109,15 @@ public class FileUtil {
             count += n;
         }
         return count;
+    }
+
+    public static boolean checkUriResource(Context context, Uri uri) {
+        Cursor cursor = context.getContentResolver()
+                .query(uri, null, null, null, null);
+        boolean doesExist = (cursor != null && cursor.moveToFirst());
+        if (cursor != null) {
+            cursor.close();
+        }
+        return doesExist;
     }
 }

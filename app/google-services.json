@@ -1,0 +1,76 @@
+{
+  "project_info": {
+    "project_number": "396426728525",
+    "project_id": "mm-book-store-2df8a",
+    "storage_bucket": "mm-book-store-2df8a.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:396426728525:android:e8907ddd88359e02e8f804",
+        "android_client_info": {
+          "package_name": "com.book.mmbookstore"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "396426728525-i5ipjj7gg4eg0kjojcbfpukgc21tc4j8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNZcoPEIxUkVs-lV9ZXxXVcxMSes-pnwo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "396426728525-i5ipjj7gg4eg0kjojcbfpukgc21tc4j8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:396426728525:android:ae98622d0a9e6c28e8f804",
+        "android_client_info": {
+          "package_name": "com.book.mmbookstore"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "396426728525-tibv135primhuc1a5tcgmc90dpeukhc9.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.book.mmbookstore",
+            "certificate_hash": "79701ee15b0d0bab83cdf939e2aaea78866ef555"
+          }
+        },
+        {
+          "client_id": "396426728525-i5ipjj7gg4eg0kjojcbfpukgc21tc4j8.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNZcoPEIxUkVs-lV9ZXxXVcxMSes-pnwo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "396426728525-i5ipjj7gg4eg0kjojcbfpukgc21tc4j8.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

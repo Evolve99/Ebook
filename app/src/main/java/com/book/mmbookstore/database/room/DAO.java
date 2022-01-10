@@ -1,6 +1,8 @@
 package com.book.mmbookstore.database.room;
 
 import androidx.room.Dao;
+import androidx.room.Insert;
+import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
 
 import com.book.mmbookstore.model.Book;

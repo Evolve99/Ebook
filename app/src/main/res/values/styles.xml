@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="AppTheme" parent="BaseTheme" />
+
+    <style name="AppDarkTheme" parent="BaseDarkTheme" />
+
+    <style name="BaseTheme" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/colorBackgroundLight</item>
+        <item name="android:fontFamily">@font/custom_font</item>
+    </style>
+
+    <style name="BaseDarkTheme" parent="Theme.MaterialComponents.NoActionBar">
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="android:windowBackground">@color/colorBackgroundDark</item>
+        <item name="android:fontFamily">@font/custom_font</item>
+    </style>
+
+    <style name="ToolbarFontStyle" parent="@style/Base.TextAppearance.AppCompat.Title">
+        <item name="android:fontFamily">@font/custom_font</item>
+    </style>
+
+    <style name="ToolbarSubtitleStyle" parent="@style/Base.TextAppearance.AppCompat.Title">
+        <item name="android:textSize">14sp</item>
+    </style>
+
+    <style name="MyBottomNavigationView" parent="Widget.MaterialComponents.BottomNavigationView">
+<!--        <item name="itemIconTint">@color/colorPrimary</item>-->
+<!--        <item name="itemTextColor">@color/colorPrimary</item>-->
+        <item name="itemTextAppearanceActive">@style/MyBottomNavigationView.TextAppearance</item>
+        <item name="itemTextAppearanceInactive">@style/MyBottomNavigationView.TextAppearance</item>
+    </style>
+
+    <style name="MyBottomNavigationView.TextAppearance" parent="TextAppearance.MaterialComponents.Caption">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="fontFamily">@font/custom_font</item>
+    </style>
+
+</resources>

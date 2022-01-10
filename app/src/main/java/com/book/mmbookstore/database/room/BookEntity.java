@@ -2,6 +2,7 @@ package com.book.mmbookstore.database.room;
 
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
+import androidx.room.OnConflictStrategy;
 import androidx.room.PrimaryKey;
 
 import com.google.gson.annotations.Expose;

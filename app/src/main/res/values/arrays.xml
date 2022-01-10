@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string-array name="dialog_books_columns">
+        <item>@string/option_menu_books_2_columns</item>
+        <item>@string/option_menu_books_3_columns</item>
+    </string-array>
+
+</resources>
