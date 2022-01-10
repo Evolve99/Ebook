@@ -4,11 +4,15 @@ import static com.book.mmbookstore.util.Constant.BANNER_READING_PAGE;
 import static com.book.mmbookstore.util.Constant.BOOK_PDF_UPLOAD;
 import static com.book.mmbookstore.util.Constant.EXTRA_OBJECT;
 
+import android.app.Activity;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.os.ParcelFileDescriptor;
 import android.text.InputFilter;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -20,6 +24,10 @@ import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -35,6 +43,7 @@ import com.book.mmbookstore.rest.RestAdapter;
 import com.book.mmbookstore.util.AdsManager;
 import com.book.mmbookstore.util.Constant;
 import com.book.mmbookstore.util.ExecutorTasks;
+import com.book.mmbookstore.util.FileUtil;
 import com.book.mmbookstore.util.InputFilterIntRange;
 import com.book.mmbookstore.util.Tools;
 import com.facebook.shimmer.ShimmerFrameLayout;
@@ -50,10 +59,13 @@ import com.google.android.material.snackbar.Snackbar;
 import com.shockwave.pdfium.PdfDocument;
 
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import okhttp3.ResponseBody;
@@ -61,7 +73,6 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-@SuppressWarnings("deprecation")
 public class ActivityPDFView extends AppCompatActivity implements OnPageChangeListener, OnLoadCompleteListener, OnPageErrorListener {
 
     private static final String TAG = "ActivityPdfView";
@@ -91,6 +102,43 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
     private boolean flag_read_later;
     Book book;
     String pdfUrl;
+    ResponseBody mResponseBody;
+
+    private static final String DOCUMENT_URI_ARGUMENT =
+            "com.example.android.actionopendocument.args.DOCUMENT_URI_ARGUMENT";
+
+    ActivityResultLauncher<Intent> mStartForResult = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(),
+            result -> {
+                if (result.getResultCode() == Activity.RESULT_OK) {
+                    Log.d(TAG, "mStartForResult: RESULT_OK");
+                    if (result.getData() != null) {
+                        Uri uri = result.getData().getData();
+                        int takeFlags = getIntent().getFlags();
+                        takeFlags &= (Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION
+                                | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                        getContentResolver().takePersistableUriPermission(uri, takeFlags);
+                        Log.d(TAG, "mStartForResult: uri: " + uri);
+                        new ExecutorTasks() {
+
+                            @Override
+                            public void onPreExecute() {
+                            }
+
+                            @Override
+                            public void doInBackground() {
+                                alterDocument(uri);
+                            }
+
+                            @Override
+                            public void onPostExecute() {
+                            }
+                        }.execute();
+
+                    }
+                } else {
+                    Log.d(TAG, "mStartForResult: " + result.getResultCode());
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -157,6 +205,67 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
         refreshBookmark();
         tools.setupToolbar(this, toolbar, "", true);
         setupToolbar();
+    }
+
+    private void createFile() {
+        Intent intent = new Intent(Intent.ACTION_CREATE_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("application/pdf");
+        intent.putExtra(Intent.EXTRA_TITLE, book.book_name + "." + fileExtension);
+
+        mStartForResult.launch(intent);
+    }
+
+    private void alterDocument(Uri uri) {
+        try {
+            ParcelFileDescriptor pfd = getContentResolver()
+                    .openFileDescriptor(uri, "w");
+            FileOutputStream fileOutputStream =
+                    new FileOutputStream(pfd.getFileDescriptor());
+
+            inputStream = mResponseBody.byteStream();
+            byte[] data = new byte[4096];
+            int count;
+            int progress = 0;
+            while ((count = inputStream.read(data)) != -1) {
+                fileOutputStream.write(data, 0, count);
+                progress += count;
+                int finalProgress = progress;
+                handler.post(() -> txtPercentage.setText((int) ((finalProgress * 100) / mResponseBody.contentLength()) + "%"));
+                Log.d(TAG, "Progress: " + progress + "/" + mResponseBody.contentLength() + " >>>> " + (float) progress / mResponseBody.contentLength());
+            }
+            fileOutputStream.close();
+            pfd.close();
+            db.insertBook(book.book_id, book.book_name, uri.toString());
+
+            File file = FileUtil.from(this, uri);
+            Log.d(TAG, "alterDocument: File:::::::: uti" + file.getPath() + " file - " + file + ": " + file.exists());
+            loadPdfFromFile(file);
+            Log.d(TAG, "File saved successfully!");
+        } catch (IOException e) {
+            e.printStackTrace();
+            loadPdfFromUrl(mResponseBody.byteStream());
+            Log.d(TAG, "Failed to save the file! " + e.getMessage());
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+    }
+
+    private void pdfFromFile(Uri documentUri) {
+        try {
+//            File file = FileUtil.from(this, documentUri);
+            ParcelFileDescriptor pfd = getContentResolver()
+                    .openFileDescriptor(documentUri, "r");
+
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
     }
 
     private void setupToolbar() {
@@ -343,22 +452,26 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
                 if (response.isSuccessful()) {
                     Log.d(TAG, "Got the body for the file");
                     if (response.body() != null) {
-                        new ExecutorTasks() {
-                            @Override
-                            public void onPreExecute() {
-                            }
-
-                            @Override
-                            public void doInBackground() {
-                                // background task here
-                                saveToStorage(response.body(), fileExtension);
-                            }
-
-                            @Override
-                            public void onPostExecute() {
-                                // Ui task here
-                            }
-                        }.execute();
+                        mResponseBody = response.body();
+                        createFile();
+//                        new ExecutorTasks() {
+//                            @Override
+//                            public void onPreExecute() {
+//                            }
+//
+//                            @Override
+//                            public void doInBackground() {
+//                                // background task here
+////                                saveToStorage(response.body(), fileExtension);
+//                                mResponseBody = response.body();
+//                                createFile();
+//                            }
+//
+//                            @Override
+//                            public void onPostExecute() {
+//                                // Ui task here
+//                            }
+//                        }.execute();
                     }
                 } else {
                     showFailedView();
@@ -401,7 +514,7 @@ public class ActivityPDFView extends AppCompatActivity implements OnPageChangeLi
                         progress += count;
                         int finalProgress = progress;
                         handler.post(() -> txtPercentage.setText((int) ((finalProgress * 100) / body.contentLength()) + "%"));
-                        Log.d(TAG, "Progress: " + progress + "/" + body.contentLength() + " >>>> " + (float) progress / body.contentLength());
+//                        Log.d(TAG, "Progress: " + progress + "/" + body.contentLength() + " >>>> " + (float) progress / body.contentLength());
                     }
                     outputStream.flush();
                     loadPdfFromFile(filePath);
